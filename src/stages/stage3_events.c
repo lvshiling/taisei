@@ -76,7 +76,7 @@ TASK(destroy_enemy, { BoxedEnemy e; }) {
 
 Boss *stage3_spawn_scuttle(cmplx pos) {
 	Boss *scuttle = create_boss("Scuttle", "scuttle", pos);
-	boss_set_portrait(scuttle, get_sprite("dialog/scuttle"), get_sprite("dialog/scuttle_face_normal"));
+	boss_set_portrait(scuttle, "scuttle", NULL, "normal");
 	scuttle->glowcolor = *RGB(0.5, 0.6, 0.3);
 	scuttle->shadowcolor = *RGBA_MUL_ALPHA(0.7, 0.3, 0.1, 0.5);
 	return scuttle;
@@ -84,7 +84,7 @@ Boss *stage3_spawn_scuttle(cmplx pos) {
 
 Boss *stage3_spawn_wriggle_ex(cmplx pos) {
 	Boss *wriggle = create_boss("Wriggle EX", "wriggleex", pos);
-	boss_set_portrait(wriggle, get_sprite("dialog/wriggle"), get_sprite("dialog/wriggle_face_proud"));
+	boss_set_portrait(wriggle, "wriggle", NULL, "proud");
 	wriggle->glowcolor = *RGBA_MUL_ALPHA(0.2, 0.4, 0.5, 0.5);
 	wriggle->shadowcolor = *RGBA_MUL_ALPHA(0.4, 0.2, 0.6, 0.5);
 	return wriggle;
@@ -132,7 +132,7 @@ TASK(death_burst, { BoxedEnemy e; ProjPrototype *shot_proj; }) {
 
 TASK(burst_swirl, { cmplx pos; cmplx dir; ProjPrototype *shot_proj; }) {
 	// swirls - fly in, explode when killed or after a preset time
-	Enemy *e = TASK_BIND_UNBOXED(create_enemy1c(ARGS.pos, 200, Swirl, NULL, 0));
+	Enemy *e = TASK_BIND(create_enemy1c(ARGS.pos, 200, Swirl, NULL, 0));
 
 	INVOKE_TASK_WHEN(&e->events.killed, common_drop_items, &e->pos, {
 		.points = 1,
@@ -165,7 +165,7 @@ TASK(burst_swirls, { int count; int interval; ProjPrototype *shot_proj; }) {
 
 
 TASK(side_swirl, { MoveParams move; cmplx start_pos; }) {
-	Enemy *e = TASK_BIND_UNBOXED(create_enemy1c(ARGS.start_pos, 50, Swirl, NULL, 0));
+	Enemy *e = TASK_BIND(create_enemy1c(ARGS.start_pos, 50, Swirl, NULL, 0));
 
 	INVOKE_TASK_WHEN(&e->events.killed, common_drop_items, &e->pos, {
 		.points = 1,
@@ -277,7 +277,7 @@ TASK(little_fairy_shot_wave, { BoxedEnemy e; int shot_interval; int intensity; }
 
 TASK(little_fairy, { cmplx pos; cmplx target_pos; int shot_type; int side; }) {
 	// contains stage3_slavefairy and stage3_slavefairy2
-	Enemy *e = TASK_BIND_UNBOXED(create_enemy1c(ARGS.pos, 900, Fairy, NULL, 0));
+	Enemy *e = TASK_BIND(create_enemy1c(ARGS.pos, 900, Fairy, NULL, 0));
 	// fade-in
 	e->alpha = 0;
 
@@ -322,7 +322,7 @@ TASK(little_fairy_line, { int count; }) {
 TASK(big_fairy_group, { cmplx pos; int shot_type; } ) {
 	// big fairy in the middle does nothing
 	// 8 fairies (2 pairs in 4 waves - bottom/top/bottom/top) spawn around her and open fire
-	Enemy *e = TASK_BIND_UNBOXED(create_enemy1c(ARGS.pos, 10000, BigFairy, NULL, 0));
+	Enemy *e = TASK_BIND(create_enemy1c(ARGS.pos, 10000, BigFairy, NULL, 0));
 
 	e->alpha = 0;
 
@@ -376,7 +376,7 @@ TASK(big_fairy_group, { cmplx pos; int shot_type; } ) {
 
 
 TASK(burst_fairy, { cmplx pos; cmplx target_pos; } ) {
-	Enemy *e = TASK_BIND_UNBOXED(create_enemy1c(ARGS.pos, 700, Fairy, NULL, 0));
+	Enemy *e = TASK_BIND(create_enemy1c(ARGS.pos, 700, Fairy, NULL, 0));
 
 	INVOKE_TASK_WHEN(&e->events.killed, common_drop_items, &e->pos, {
 		.points = 1,
@@ -448,7 +448,7 @@ TASK(burst_fairy_squad, { int count; int step; } ) {
 
 TASK(charge_fairy, { cmplx pos; cmplx target_pos; cmplx exit_dir; int charge_time; int move_first; }) {
 	// charges up some danmaku and then "releases" them
-	Enemy *e = TASK_BIND_UNBOXED(create_enemy1c(ARGS.pos, 1000, Fairy, NULL, 0));
+	Enemy *e = TASK_BIND(create_enemy1c(ARGS.pos, 1000, Fairy, NULL, 0));
 
 	e->alpha = 0;
 
@@ -540,7 +540,7 @@ TASK(charge_fairy_squad_2, { int count; cmplx start_pos; cmplx target_pos; cmplx
 }
 
 TASK(corner_fairy, { cmplx pos; cmplx p1; cmplx p2; int type; } ) {
-	Enemy *e = TASK_BIND_UNBOXED(create_enemy1c(ARGS.pos, 500, Fairy, NULL, 0));
+	Enemy *e = TASK_BIND(create_enemy1c(ARGS.pos, 500, Fairy, NULL, 0));
 
 	e->alpha = 0;
 
@@ -555,7 +555,7 @@ TASK(corner_fairy, { cmplx pos; cmplx p1; cmplx p2; int type; } ) {
 	for(int x = 0; x < 100; ++x) {
 		int momentum = 140 + x;
 		e->move.attraction_point = ARGS.p2;
-		e->move.attraction = 0.025 * min((20 + x) / 42.0, 1);
+		e->move.attraction = 0.025 * fmin((20 + x) / 42.0, 1);
 
 		int d = 5;
 		if(!(momentum % d)) {
@@ -650,7 +650,7 @@ TASK_WITH_INTERFACE(scuttle_lethbite, BossAttack) {
 
 		// fly through Scuttle, wind up on other side in a starburst pattern
 		for(int i = 0; i < intensity; ++i) {
-			cmplx v = (2 - psin((max(3, velocity_intensity) * 2 * M_PI * i / (float)intensity) + i)) * cdir(2 * M_PI / intensity * i);
+			cmplx v = (2 - psin((fmax(3, velocity_intensity) * 2 * M_PI * i / (float)intensity) + i)) * cdir(2 * M_PI / intensity * i);
 			ENT_ARRAY_ADD(&projs, PROJECTILE(
 				.proto = pp_wave,
 				.pos = boss->pos - v * 50,
@@ -732,7 +732,7 @@ DEFINE_EXTERN_TASK(stage3_spell_deadly_dance) {
 
 		real angle_ofs = rng_f32() * M_PI * 2;
 		double t = time * 1.5 * (0.4 + 0.3 * global.diff);
-		double moverad = min(160, time/2.7);
+		double moverad = fmin(160, time/2.7);
 
 		boss->pos = VIEWPORT_W/2 + VIEWPORT_H*I/2 + sin(t/50.0) * moverad * cdir(M_PI_2 * t/100.0);
 
