@@ -2,7 +2,8 @@
 stages_src = []
 
 stages = [
-    'stage1'
+    'stage1',
+    'stage2',
 ]
 
 foreach stage : stages
