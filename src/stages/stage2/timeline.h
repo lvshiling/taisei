@@ -11,4 +11,6 @@
 
 #include "taisei.h"
 
+void stage2_events(void);
+
 #endif // IGUARD_stages_stage2_timeline_h

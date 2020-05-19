@@ -15,8 +15,6 @@ endforeach
 # them into the "stages" array
 
 stages_src += files(
-    'stage2.c',
-    'stage2_events.c',
     'stage3.c',
     'stage3_events.c',
     'stage4.c',

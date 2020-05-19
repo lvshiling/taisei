@@ -11,4 +11,8 @@
 
 #include "taisei.h"
 
+#include "boss.h"
+
+Boss *stage2_spawn_wriggle(cmplx pos);
+
 #endif // IGUARD_stages_stage2_wriggle_h

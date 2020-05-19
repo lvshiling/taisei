@@ -11,4 +11,10 @@
 
 #include "taisei.h"
 
+#include "boss.h"
+
+void wriggle_small_storm(Boss *w, int time);
+void hina_cards1(Boss *h, int time);
+void hina_cards2(Boss *h, int time);
+
 #endif // IGUARD_stages_stage2_nonspells_nonspells_h

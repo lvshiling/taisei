@@ -11,4 +11,9 @@
 
 #include "taisei.h"
 
+#include "boss.h"
+
+Boss *stage2_spawn_hina(cmplx pos);
+void stage2_draw_hina_spellbg(Boss *h, int time);
+
 #endif // IGUARD_stages_stage2_hina_h

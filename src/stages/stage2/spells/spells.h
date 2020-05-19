@@ -11,4 +11,11 @@
 
 #include "taisei.h"
 
+#include "boss.h"
+
+void hina_amulet(Boss*, int);
+void hina_bad_pick(Boss*, int);
+void hina_wheel(Boss*, int);
+void hina_monty(Boss*, int);
+
 #endif // IGUARD_stages_stage2_spells_spells_h
