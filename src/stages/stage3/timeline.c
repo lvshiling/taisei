@@ -8,60 +8,21 @@
 
 #include "taisei.h"
 
-#include "stage3_events.h"
+#include "timeline.h"
 #include "stage3.h"
+#include "wriggle.h"
+#include "scuttle.h"
+#include "spells/spells.h"
+#include "nonspells/nonspells.h"
+#include "background_anim.h"
+
 #include "global.h"
-#include "stage.h"
-#include "enemy.h"
+#include "stagetext.h"
 #include "common_tasks.h"
 
-/*
- * Helper functions
- */
-
-void scuttle_spellbg(Boss *h, int time) {
-	float a = 1.0;
-
-	if(time < 0)
-		a += (time / (float)ATTACK_START_DELAY);
-	float s = 0.3 + 0.7 * a;
-
-	r_color4(0.1*a, 0.1*a, 0.1*a, a);
-	draw_sprite(VIEWPORT_W/2, VIEWPORT_H/2, "stage3/spellbg2");
-	fill_viewport(-time/200.0 + 0.5, time/400.0+0.5, s, "stage3/spellbg1");
-	r_color4(0.1, 0.1, 0.1, 0);
-	fill_viewport(time/300.0 + 0.5, -time/340.0+0.5, s*0.5, "stage3/spellbg1");
-	r_shader("maristar_bombbg");
-	r_uniform_float("t", time/400.);
-	r_uniform_float("decay", 0.);
-	r_uniform_vec2("plrpos", 0.5,0.5);
-	fill_viewport(0.0, 0.0, 1, "stage3/spellbg1");
-
-	r_shader_standard();
-	r_color4(1, 1, 1, 1);
-}
-
-void wriggle_spellbg(Boss *b, int time) {
-	r_color4(1,1,1,1);
-	fill_viewport(0, 0, 768.0/1024.0, "stage3/wspellbg");
-	r_color4(1,1,1,0.5);
-	r_blend(r_blend_compose(
-		BLENDFACTOR_SRC_ALPHA, BLENDFACTOR_ONE, BLENDOP_SUB,
-		BLENDFACTOR_ZERO,      BLENDFACTOR_ONE, BLENDOP_ADD
-	));
-	fill_viewport(sin(time) * 0.015, time / 50.0, 1, "stage3/wspellclouds");
-	r_blend(BLEND_PREMUL_ALPHA);
-	r_color4(0.5, 0.5, 0.5, 0.0);
-	fill_viewport(0, time / 70.0, 1, "stage3/wspellswarm");
-	r_blend(r_blend_compose(
-		BLENDFACTOR_SRC_ALPHA, BLENDFACTOR_ONE, BLENDOP_SUB,
-		BLENDFACTOR_ZERO,      BLENDFACTOR_ONE, BLENDOP_ADD
-	));
-	r_color4(1,1,1,0.4);
-	fill_viewport(cos(time) * 0.02, time / 30.0, 1, "stage3/wspellclouds");
-
-	r_blend(BLEND_PREMUL_ALPHA);
-	r_color4(1, 1, 1, 1);
+static void stage3_dialog_post_boss(void) {
+	PlayerMode *pm = global.plr.mode;
+	INVOKE_TASK_INDIRECT(Stage3PostBossDialog, pm->dialog->Stage3PostBoss);
 }
 
 TASK(destroy_enemy, { BoxedEnemy e; }) {
@@ -69,38 +30,6 @@ TASK(destroy_enemy, { BoxedEnemy e; }) {
 	Enemy *e = TASK_BIND(ARGS.e);
 	e->hp = ENEMY_KILLED;
 }
-
-/*
- * Bosses
- */
-
-Boss *stage3_spawn_scuttle(cmplx pos) {
-	Boss *scuttle = create_boss("Scuttle", "scuttle", pos);
-	boss_set_portrait(scuttle, "scuttle", NULL, "normal");
-	scuttle->glowcolor = *RGB(0.5, 0.6, 0.3);
-	scuttle->shadowcolor = *RGBA_MUL_ALPHA(0.7, 0.3, 0.1, 0.5);
-	return scuttle;
-}
-
-Boss *stage3_spawn_wriggle_ex(cmplx pos) {
-	Boss *wriggle = create_boss("Wriggle EX", "wriggleex", pos);
-	boss_set_portrait(wriggle, "wriggle", NULL, "proud");
-	wriggle->glowcolor = *RGBA_MUL_ALPHA(0.2, 0.4, 0.5, 0.5);
-	wriggle->shadowcolor = *RGBA_MUL_ALPHA(0.4, 0.2, 0.6, 0.5);
-	return wriggle;
-}
-
-static void stage3_dialog_post_boss(void) {
-	PlayerMode *pm = global.plr.mode;
-	INVOKE_TASK_INDIRECT(Stage3PostBossDialog, pm->dialog->Stage3PostBoss);
-}
-
-
-/*
- * Stage mobs
- */
-
-// burst swirls
 
 TASK(death_burst, { BoxedEnemy e; ProjPrototype *shot_proj; }) {
 	// explode in a hail of bullets
@@ -201,7 +130,8 @@ TASK(side_swirls_procession, { int interval; int count; MoveParams move; cmplx s
 	}
 }
 
-// fairies
+
+
 
 TASK(little_fairy_shot_ball, { BoxedEnemy e; int shot_interval; int intensity;} ) {
 	Enemy *e = TASK_BIND(ARGS.e);
@@ -258,6 +188,7 @@ TASK(little_fairy_shot_wave, { BoxedEnemy e; int shot_interval; int intensity; }
 			.color = (i & 3) ? RGB(1.0, 0.3, 0.3) : RGB(0.3, 0.3, 1.0),
 			.move = move_linear(2 * dir)
 		);
+
 		if (global.diff > D_Normal && global.timer % 3 == 0) {
 
 			PROJECTILE(
@@ -266,13 +197,14 @@ TASK(little_fairy_shot_wave, { BoxedEnemy e; int shot_interval; int intensity; }
 				.color = !(i & 3) ? RGB(1.0, 0.3, 0.3) : RGB(0.3, 0.3, 1.0),
 				.move = move_linear(-2 * dir)
 			);
-
 		}
 
 		play_sound("shot1");
 		WAIT(ARGS.shot_interval);
 	}
+
 	WAIT(60);
+
 }
 
 TASK(little_fairy, { cmplx pos; cmplx target_pos; int shot_type; int side; }) {
@@ -305,6 +237,7 @@ TASK(little_fairy, { cmplx pos; cmplx target_pos; int shot_type; int side; }) {
 	e->move.acceleration = exit_accel;
 	e->move.retention = 1;
 }
+
 
 TASK(little_fairy_line, { int count; }) {
 	for(int i = 0; i < ARGS.count; ++i) {
@@ -445,7 +378,6 @@ TASK(burst_fairy_squad, { int count; int step; } ) {
 	}
 }
 
-
 TASK(charge_fairy, { cmplx pos; cmplx target_pos; cmplx exit_dir; int charge_time; int move_first; }) {
 	// charges up some danmaku and then "releases" them
 	Enemy *e = TASK_BIND(create_enemy1c(ARGS.pos, 1000, Fairy, NULL, 0));
@@ -464,7 +396,7 @@ TASK(charge_fairy, { cmplx pos; cmplx target_pos; cmplx exit_dir; int charge_tim
 
 	int intensity = difficulty_value(11, 15, 19, 23);
 
-	DECLARE_ENT_ARRAY(Projectile, projs, intensity*2);
+	DECLARE_ENT_ARRAY(Projectile, projs, intensity*4);
 
 	for(int x = 0; x < intensity; ++x) {
 
@@ -486,14 +418,16 @@ TASK(charge_fairy, { cmplx pos; cmplx target_pos; cmplx exit_dir; int charge_tim
 			cmplx paim = e->pos + (w+1) * aim - o;
 			paim /= cabs(paim);
 
-			ENT_ARRAY_ADD(&projs, PROJECTILE(
-				.proto = pp_wave,
-				.pos = o,
-				.color = color_lerp(RGB(0.0, 0.0, 1.0), RGB(1.0, 0.0, 0.0), f),
-				.args = {
-					paim, 6 + global.diff - layer,
-				},
-			));
+			ENT_ARRAY_ADD(&projs,
+				PROJECTILE(
+					.proto = pp_wave,
+					.pos = o,
+					.color = color_lerp(RGB(0.0, 0.0, 1.0), RGB(1.0, 0.0, 0.0), f),
+					.args = {
+						paim, 6 + global.diff - layer,
+					},
+				)
+			);
 		}
 	}
 
@@ -521,6 +455,7 @@ TASK(charge_fairy_squad_1, { int count; int step; int charge_time; } ) {
 		cmplx pos = VIEWPORT_W/2 + span * (-0.5 + (i & 1)) + (VIEWPORT_H/3 + 100*(i / 2)) * I;
 		cmplx exitdir = pos - (VIEWPORT_W+VIEWPORT_H * I) / 2;
 		exitdir /= cabs(exitdir);
+
 		INVOKE_TASK(charge_fairy,
 			.pos = pos,
 			.target_pos = 0,
@@ -528,6 +463,7 @@ TASK(charge_fairy_squad_1, { int count; int step; int charge_time; } ) {
 			.charge_time = ARGS.charge_time,
 			.move_first = 0
 		);
+
 		WAIT(ARGS.step);
 	}
 }
@@ -538,6 +474,7 @@ TASK(charge_fairy_squad_2, { int count; cmplx start_pos; cmplx target_pos; cmplx
 		WAIT(ARGS.delay);
 	}
 }
+
 
 TASK(corner_fairy, { cmplx pos; cmplx p1; cmplx p2; int type; } ) {
 	Enemy *e = TASK_BIND(create_enemy1c(ARGS.pos, 500, Fairy, NULL, 0));
@@ -567,9 +504,7 @@ TASK(corner_fairy, { cmplx pos; cmplx p1; cmplx p2; int type; } ) {
 				PROJECTILE(
 					.proto = wave ? pp_wave : pp_thickrice,
 					.pos = e->pos,
-					.color = ARGS.type
-					? RGB(0.5 - c*0.2, 0.3 + c*0.7, 1.0)
-					: RGB(1.0 - c*0.5, 0.6, 0.5 + c*0.5),
+					.color = ARGS.type ? RGB(0.5 - c*0.2, 0.3 + c*0.7, 1.0) : RGB(1.0 - c*0.5, 0.6, 0.5 + c*0.5),
 					.move = move_asymptotic_simple(
 						((1.8 - 0.4 * wave * !!ARGS.p2) * cdir((2 * i * M_PI / intensity) + carg((VIEWPORT_W + I * VIEWPORT_H)/2 - e->pos))),
 						1.5
@@ -605,20 +540,16 @@ TASK(corner_fairies, NO_ARGS) {
 	}
 }
 
-/*
- * Bosses
- */
+// bosses
 
-// scuttle
-
-TASK_WITH_INTERFACE(scuttle_intro, BossAttack) {
+TASK_WITH_INTERFACE(midboss_intro, BossAttack) {
 	Boss *boss = INIT_BOSS_ATTACK();
 	BEGIN_BOSS_ATTACK();
 
 	boss->move = move_towards(VIEWPORT_W/2 + 100.0*I, 0.04);
 }
 
-TASK_WITH_INTERFACE(scuttle_outro, BossAttack) {
+TASK_WITH_INTERFACE(midboss_outro, BossAttack) {
 	Boss *boss = INIT_BOSS_ATTACK();
 	BEGIN_BOSS_ATTACK();
 
@@ -629,210 +560,17 @@ TASK_WITH_INTERFACE(scuttle_outro, BossAttack) {
 	boss->move = move_towards(VIEWPORT_W/2 - 200.0*I, 0.05);
 }
 
-TASK(scuttle_delaymove, { BoxedBoss boss; } ) {
-	Boss *boss = TASK_BIND(ARGS.boss);
-
-	boss->move.attraction_point = 5*VIEWPORT_W/6 + 200*I;
-	boss->move.attraction = 0.001;
-}
-
-TASK_WITH_INTERFACE(scuttle_lethbite, BossAttack) {
-	Boss *boss = INIT_BOSS_ATTACK();
-	BEGIN_BOSS_ATTACK();
-
-	int difficulty = difficulty_value(1, 2, 3, 4);
-	int intensity = difficulty_value(18, 19, 20, 21);
-	int velocity_intensity = difficulty_value(2, 3, 4, 5);
-	INVOKE_SUBTASK_DELAYED(400, scuttle_delaymove, ENT_BOX(boss));
-
-	for(;;) {
-		DECLARE_ENT_ARRAY(Projectile, projs, intensity*2);
-
-		// fly through Scuttle, wind up on other side in a starburst pattern
-		for(int i = 0; i < intensity; ++i) {
-			cmplx v = (2 - psin((fmax(3, velocity_intensity) * 2 * M_PI * i / (float)intensity) + i)) * cdir(2 * M_PI / intensity * i);
-			ENT_ARRAY_ADD(&projs, PROJECTILE(
-				.proto = pp_wave,
-				.pos = boss->pos - v * 50,
-				.color = i % 2 ? RGB(0.7, 0.3, 0.0) : RGB(0.3, .7, 0.0),
-				.move = move_asymptotic_simple(v, 2.0)
-			));
-		}
-
-		WAIT(80);
-
-		// halt acceleration for a moment
-		ENT_ARRAY_FOREACH(&projs, Projectile *p, {
-			p->move.acceleration = 0;
-		});
-
-		WAIT(30);
-
-		// change direction, fly towards player
-		ENT_ARRAY_FOREACH(&projs, Projectile *p, {
-
-			int count = 6;
-
-			// when the shot "releases", add a bunch of particles and some extra bullets
-			for(int i = 0; i < count; ++i) {
-				PARTICLE(
-					.sprite = "smoothdot",
-					.pos = p->pos,
-					.color = RGBA(0.8, 0.6, 0.6, 0),
-					.timeout = 100,
-					.draw_rule = pdraw_timeout_scalefade(0, 0.8, 1, 0),
-					.move = move_asymptotic_simple(p->move.velocity + rng_dir(), 0.1)
-				);
-
-				real offset = global.frames/15.0;
-				if(global.diff > D_Hard && global.boss) {
-					offset = M_PI + carg(global.plr.pos - global.boss->pos);
-				}
-
-				PROJECTILE(
-					.proto = pp_thickrice,
-					.pos = p->pos,
-					.color = RGB(0.4, 0.3, 1.0),
-					.move = move_linear(-cdir(((i * 2 * M_PI/count + offset)) * (1.0 + (difficulty > 2))))
-				);
-			}
-			spawn_projectile_highlight_effect(p);
-			p->move = move_linear((3 + (2.0 * difficulty) / 4.0) * (cnormalize(global.plr.pos - p->pos)));
-		});
-	}
-}
-
-TASK(deadly_dance_proj, { BoxedProjectile p; int t; int i; }) {
-
-	Projectile *p = TASK_BIND(ARGS.p);
-
-	int t = ARGS.t;
-	int i = ARGS.i;
-	double a = (M_PI/(5 + global.diff) * i * 2);
-	PROJECTILE(
-		.proto = rng_chance(0.5) ? pp_thickrice : pp_rice,
-		.pos = p->pos,
-		.color = RGB(0.3, 0.7 + 0.3 * psin(a/3.0 + t/20.0), 0.3),
-		.move = move_accelerated(0, 0.005 * cdir((M_PI * 2 * sin(a / 5.0 + t / 20.0))))
-	);
-}
-
-DEFINE_EXTERN_TASK(stage3_spell_deadly_dance) {
-	Boss *boss = INIT_BOSS_ATTACK();
-	BEGIN_BOSS_ATTACK();
-
-	aniplayer_queue(&boss->ani, "dance", 0);
-	int intensity = difficulty_value(15, 18, 21, 24);
-
-	int i;
-	for(int time = 0; time < 1000; ++time) {
-		WAIT(1);
-
-		DECLARE_ENT_ARRAY(Projectile, projs, intensity*2);
-
-		real angle_ofs = rng_f32() * M_PI * 2;
-		double t = time * 1.5 * (0.4 + 0.3 * global.diff);
-		double moverad = fmin(160, time/2.7);
-
-		boss->pos = VIEWPORT_W/2 + VIEWPORT_H*I/2 + sin(t/50.0) * moverad * cdir(M_PI_2 * t/100.0);
-
-		if(!(time % 70)) {
-			for(i = 0; i < intensity; ++i) {
-				double a = (M_PI/(5 + global.diff) * i * 2);
-				ENT_ARRAY_ADD(&projs, PROJECTILE(
-					.proto = pp_wave,
-					.pos = boss->pos,
-					.color = RGB(0.3, 0.3 + 0.7 * psin((M_PI/(5 + global.diff) * i * 2) * 3 + time/50.0), 0.3),
-					.move = move_accelerated(0, 0.02 * cdir(angle_ofs + a + time/10.0)),
-				));
-			}
-			ENT_ARRAY_FOREACH(&projs, Projectile *p, {
-				INVOKE_SUBTASK_DELAYED(150, deadly_dance_proj, ENT_BOX(p), t, i);
-			});
-		}
-
-
-		if(global.diff > D_Easy && !(time % 35)) {
-			int count = difficulty_value(2, 4, 6, 8);
-			for(i = 0; i < count; ++i) {
-				PROJECTILE(
-					.proto = pp_ball,
-					.pos = boss->pos,
-					.color = RGB(1.0, 1.0, 0.3),
-					.move = move_asymptotic_simple(
-						(0.5 + 3 * psin(time + M_PI / 3 * 2 * i)) * cdir(angle_ofs + time / 20.0 + M_PI / count * i * 2),
-						1.5
-					)
-				);
-			}
-		}
-
-		play_sound("shot1");
-
-		if(!(time % 3)) {
-			for(i = -1; i < 2; i += 2) {
-				double c = psin(time/10.0);
-				PROJECTILE(
-					.proto = pp_crystal,
-					.pos = boss->pos,
-					.color = RGBA_MUL_ALPHA(0.3 + c * 0.7, 0.6 - c * 0.3, 0.3, 0.7),
-					.move = move_linear(
-						10 * (cnormalize(global.plr.pos - boss->pos) + (M_PI/4.0 * i * (1 - time / 2500.0)) * (1 - 0.5 * psin(time / 15.0)))
-					)
-				);
-			}
-		}
-	}
-}
-
 TASK(spawn_midboss, NO_ARGS) {
 	STAGE_BOOKMARK_DELAYED(120, midboss);
 
 	Boss *boss = global.boss = stage3_spawn_scuttle(VIEWPORT_W/2 - 200.0*I);
-	boss_add_attack_task(boss, AT_Move, "Introduction", 1, 0, TASK_INDIRECT(BossAttack, scuttle_intro), NULL);
-	boss_add_attack_task(boss, AT_Normal, "Lethal Bite", 11, 20000, TASK_INDIRECT(BossAttack, scuttle_lethbite), NULL);
+	boss_add_attack_task(boss, AT_Move, "Introduction", 1, 0, TASK_INDIRECT(BossAttack, midboss_intro), NULL);
+	boss_add_attack_task(boss, AT_Normal, "Lethal Bite", 11, 20000, TASK_INDIRECT(BossAttack, stage3_midboss_nonspell_1), NULL);
 	boss_add_attack_from_info(boss, &stage3_spells.mid.deadly_dance, false);
-	boss_add_attack_task(boss, AT_Move, "Runaway", 2, 1, TASK_INDIRECT(BossAttack, scuttle_outro), NULL);
+	boss_add_attack_task(boss, AT_Move, "Runaway", 2, 1, TASK_INDIRECT(BossAttack, midboss_outro), NULL);
 	boss->zoomcolor = *RGB(0.4, 0.1, 0.4);
 
 	boss_start_attack(boss, boss->attacks);
-}
-
-// wriggle
-
-TASK_WITH_INTERFACE(stage3_spell_boss_nonspell1, BossAttack) {
-	Boss *boss = INIT_BOSS_ATTACK();
-	BEGIN_BOSS_ATTACK();
-}
-
-TASK_WITH_INTERFACE(stage3_spell_boss_nonspell2, BossAttack) {
-	Boss *boss = INIT_BOSS_ATTACK();
-	BEGIN_BOSS_ATTACK();
-}
-
-TASK_WITH_INTERFACE(stage3_spell_boss_nonspell3, BossAttack) {
-	Boss *boss = INIT_BOSS_ATTACK();
-	BEGIN_BOSS_ATTACK();
-}
-
-DEFINE_EXTERN_TASK(stage3_spell_firefly_storm) {
-	Boss *boss = INIT_BOSS_ATTACK();
-	BEGIN_BOSS_ATTACK();
-}
-
-DEFINE_EXTERN_TASK(stage3_spell_light_singularity) {
-	Boss *boss = INIT_BOSS_ATTACK();
-	BEGIN_BOSS_ATTACK();
-}
-
-DEFINE_EXTERN_TASK(stage3_spell_night_ignite) {
-	Boss *boss = INIT_BOSS_ATTACK();
-	BEGIN_BOSS_ATTACK();
-}
-
-DEFINE_EXTERN_TASK(stage3_spell_moonlight_rocket) {
-	Boss *boss = INIT_BOSS_ATTACK();
-	BEGIN_BOSS_ATTACK();
 }
 
 TASK(boss_appear, { BoxedBoss boss; }) {
@@ -843,7 +581,7 @@ TASK(boss_appear, { BoxedBoss boss; }) {
 TASK(spawn_boss, NO_ARGS) {
 	STAGE_BOOKMARK_DELAYED(120, boss);
 
-	Boss *boss = global.boss = stage3_spawn_wriggle_ex(VIEWPORT_W/2 - 200.0*I);
+	Boss *boss = global.boss = stage3_spawn_wriggle(VIEWPORT_W/2 - 200.0*I);
 
 	PlayerMode *pm = global.plr.mode;
 	Stage3PreBossDialogEvents *e;
@@ -852,16 +590,12 @@ TASK(spawn_boss, NO_ARGS) {
 	INVOKE_TASK_WHEN(&e->music_changes, common_start_bgm, "stage3boss");
 	WAIT_EVENT(&global.dialog->events.fadeout_began);
 
-	boss_add_attack_task(boss, AT_Normal, "", 11, 35000, TASK_INDIRECT(BossAttack, stage3_spell_boss_nonspell1), NULL);
+	boss_add_attack_task(boss, AT_Normal, "", 11, 35000, TASK_INDIRECT(BossAttack, stage3_boss_nonspell_1), NULL);
 
 	boss_start_attack(boss, boss->attacks);
 }
 
-/*
- * Main script for the stage
- */
-
-DEFINE_EXTERN_TASK(stage3_main) {
+DEFINE_EXTERN_TASK(stage3_timeline) {
 	stage_start_bgm("stage3");
 	stage_set_voltage_thresholds(50, 125, 300, 600);
 
@@ -1054,4 +788,3 @@ DEFINE_EXTERN_TASK(stage3_main) {
 	WAIT(5);
 	stage_finish(GAMEOVER_SCORESCREEN);
 }
-
