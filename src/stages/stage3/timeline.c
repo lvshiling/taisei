@@ -92,7 +92,6 @@ TASK(burst_swirls, { int count; int interval; ProjPrototype *shot_proj; }) {
 // side swirls
 // typically move across a stage in a drive-by fashion
 
-
 TASK(side_swirl, { MoveParams move; cmplx start_pos; }) {
 	Enemy *e = TASK_BIND(create_enemy1c(ARGS.start_pos, 50, Swirl, NULL, 0));
 
@@ -238,7 +237,6 @@ TASK(little_fairy, { cmplx pos; cmplx target_pos; int shot_type; int side; }) {
 	e->move.retention = 1;
 }
 
-
 TASK(little_fairy_line, { int count; }) {
 	for(int i = 0; i < ARGS.count; ++i) {
 		cmplx pos1 = VIEWPORT_W/2 + VIEWPORT_W/3 * rng_f32() + VIEWPORT_H/5*I;
@@ -306,7 +304,6 @@ TASK(big_fairy_group, { cmplx pos; int shot_type; } ) {
 	e->move.acceleration = 0.02 * I + 0;
 	e->move.retention = 1;
 }
-
 
 TASK(burst_fairy, { cmplx pos; cmplx target_pos; } ) {
 	Enemy *e = TASK_BIND(create_enemy1c(ARGS.pos, 700, Fairy, NULL, 0));
@@ -474,7 +471,6 @@ TASK(charge_fairy_squad_2, { int count; cmplx start_pos; cmplx target_pos; cmplx
 		WAIT(ARGS.delay);
 	}
 }
-
 
 TASK(corner_fairy, { cmplx pos; cmplx p1; cmplx p2; int type; } ) {
 	Enemy *e = TASK_BIND(create_enemy1c(ARGS.pos, 500, Fairy, NULL, 0));

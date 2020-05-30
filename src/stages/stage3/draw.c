@@ -124,12 +124,10 @@ static bool stage3_glitch(Framebuffer *fb) {
 	return true;
 }
 
-
 void stage3_draw(void) {
 	r_mat_proj_perspective(STAGE3D_DEFAULT_FOVY, STAGE3D_DEFAULT_ASPECT, 300, 5000);
 	stage3d_draw(&stage_3d_context, 7000, 1, (Stage3DSegment[]) { stage3_bg_tunnel_draw, stage3_bg_pos });
 }
-
 
 ShaderRule stage3_bg_effects[] = {
 	stage3_fog,

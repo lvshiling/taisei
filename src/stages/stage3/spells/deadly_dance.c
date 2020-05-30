@@ -14,7 +14,6 @@
 #include "common_tasks.h"
 #include "global.h"
 
-
 TASK(deadly_dance_proj, { BoxedProjectile p; int t; int i; }) {
 
     Projectile *p = TASK_BIND(ARGS.p);
@@ -63,7 +62,6 @@ DEFINE_EXTERN_TASK(stage3_spell_deadly_dance) {
                 INVOKE_SUBTASK_DELAYED(150, deadly_dance_proj, ENT_BOX(p), t, i);
             });
         }
-
 
         if(global.diff > D_Easy && !(time % 35)) {
             int count = difficulty_value(2, 4, 6, 8);

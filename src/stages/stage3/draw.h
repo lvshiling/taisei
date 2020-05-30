@@ -48,4 +48,3 @@ extern ShaderRule stage3_bg_effects[];
 extern ShaderRule stage3_postprocess[];
 
 #endif // IGUARD_stages_stage3_draw_h
-

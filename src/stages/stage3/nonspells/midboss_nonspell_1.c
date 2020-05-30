@@ -30,7 +30,7 @@ DEFINE_EXTERN_TASK(stage3_midboss_nonspell_1) {
 	INVOKE_SUBTASK_DELAYED(400, midboss_delaymove, ENT_BOX(boss));
 
 	for(;;) {
-		DECLARE_ENT_ARRAY(Projectile, projs, intensity*2);
+		DECLARE_ENT_ARRAY(Projectile, projs, intensity*4);
 
 		// fly through Scuttle, wind up on other side in a starburst pattern
 		for(int i = 0; i < intensity; ++i) {
@@ -49,8 +49,8 @@ DEFINE_EXTERN_TASK(stage3_midboss_nonspell_1) {
 
 		// halt acceleration for a moment
 		ENT_ARRAY_FOREACH(&projs, Projectile *p, {
-				p->move.acceleration = 0;
-				});
+			p->move.acceleration = 0;
+		});
 
 		WAIT(30);
 
