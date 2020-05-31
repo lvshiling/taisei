@@ -71,7 +71,7 @@ DEFINE_EXTERN_TASK(stage3_midboss_nonspell_1) {
 
 				real offset = global.frames/15.0;
 				if(global.diff > D_Hard && global.boss) {
-				offset = M_PI + carg(global.plr.pos - global.boss->pos);
+					offset = M_PI + carg(global.plr.pos - global.boss->pos);
 				}
 
 				PROJECTILE(
